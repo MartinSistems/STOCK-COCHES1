@@ -15,9 +15,12 @@
     .marca-logo {
       display: flex;
       align-items: center;
+      justify-content: space-between;
       margin-top: 8px;
       margin-bottom: 4px;
+      gap: 10px;
     }
+
     .marca-logo img {
       width: 24px;
       height: 24px;
@@ -39,7 +42,11 @@
 
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 <script>
-const mapa = L.map('map').setView([48.8566, 2.3522], 5); // Centrado en Europa
+const mapa = L.map('map');
+mapa.fitBounds([
+  [43.8, -9.3],   // Noroeste de España (Galicia)
+  [36.0, 4.5]     // Sureste, tocando algo de Italia
+]);
 
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
   attribution: '© OpenStreetMap contributors',
@@ -72,7 +79,7 @@ fetch(CSV_URL)
 
       datosProvincia.forEach((fila) => {
         html += `<div class='marca-separator'></div>`;
-        html += `<div class='marca-logo'><img src="${fila["LOGO"]}" alt="logo"> <strong>${fila["MARCA"]}</strong> ${fila["STOCK"]}</div>`;
+        html += `<div class='marca-logo'><span><img src="${deMarca[0]["LOGO"]}" alt="logo"> <strong>${marca}</strong></span><span>${totalUnidades} unidades</span></div>`;
       });
 
       html += `</div>`;
