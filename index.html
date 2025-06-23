@@ -21,9 +21,23 @@
       gap: 10px;
       width: 100%;
     }
-    .marca-logo span {
-      display: inline-block;
+
+    .marca-logo .info-marca {
+      display: flex;
+      align-items: center;
+      flex: 1;
+      min-width: 0;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
     }
+
+    .marca-logo .stock {
+      flex-shrink: 0;
+      font-weight: bold;
+      margin-left: 8px;
+    }
+
     .marca-logo img {
       width: 24px;
       height: 24px;
@@ -83,9 +97,10 @@ fetch(CSV_URL)
 
         html += `<div class='marca-separator'></div>`;
         html += `<div class='marca-logo'>
-                  <span><img src="${logo}" alt="logo"> <strong>${marca}</strong></span>
-                  <span>${stock}</span>
-                 </div>`;
+          <div class="info-marca"><img src="${logo}" alt="logo"> <strong>${marca}</strong></div>
+          <div class="stock">${stock}</div>
+        </div>`;
+
       });
 
       html += `</div>`;
