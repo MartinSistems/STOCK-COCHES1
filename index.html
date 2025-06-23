@@ -9,15 +9,17 @@
     #map { height: 100vh; width: 100%; }
     .popup-content {
       font-family: Arial, sans-serif;
-      font-size: 12px;
+      font-size: 12px; /* más pequeño */
       line-height: 1.4;
+      background: white;
+      padding: 4px;
     }
     .marca-logo {
       display: flex;
       align-items: center;
       justify-content: space-between;
       margin-top: 6px;
-      margin-bottom: 4px;
+      margin-bottom: 2px;
       gap: 8px;
       width: 100%;
     }
@@ -47,13 +49,18 @@
   </style>
 </head>
 <body>
+
 <div id="search-container" style="position:absolute;top:10px;left:50%;transform:translateX(-50%);z-index:1000;background:white;padding:8px;border-radius:6px;box-shadow:0 2px 6px rgba(0,0,0,0.2);">
   <input id="search-input" type="text" placeholder="Buscar provincia..." style="padding:6px;width:250px;border-radius:4px;border:1px solid #ccc;">
 </div>
+
 <div id="map"></div>
+
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 <script>
-const mapa = L.map('map').setView([42.5, -1.5], 5.7);
+const mapa = L.map('map', {
+  zoomControl: true
+}).setView([42.5, -1.5], 5.7);
 
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
   attribution: '© OpenStreetMap contributors',
@@ -63,64 +70,73 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
 const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRo1GdeHBhvINfcrAmPKvUmgU2jAIThFYNSg_TjOd3w-MyKe3gmzxEft6wz6-CN3WSsTpEgq1TabODC/pub?gid=0&single=true&output=csv';
 
 const coordenadas = {
-  "BARCELONA_MG": [41.38879, 2.15899],
-  "BARCELONA_OMODA": [41.38849, 2.15869],
-  "BARCELONA_RENAULT": [41.38819, 2.15839],
-  "BARCELONA_MERCEDES": [41.38789, 2.15809],
-  "BARCELONA_INTERCAMPA": [41.38759, 2.15779],
-
-  "VALENCIA_STELLANTIS ZAG.": [39.47391, -0.37966],
-  "VALENCIA_STELLANTIS MAD.": [39.47361, -0.37936],
-  "VALENCIA_FORD FR.": [39.47331, -0.37906],
-  "VALENCIA_FORD BCN.": [39.47301, -0.37876],
-  "VALENCIA_FORD B3": [39.47271, -0.37846]
+  "MADRID": [40.4168, -3.7038],
+  "BARCELONA": [41.38879, 2.15899],
+  "VALENCIA": [39.47391, -0.37966]
 };
+
+// Espaciado vertical para cada marca (en grados)
+const OFFSET_Y = 0.08;
 
 fetch(CSV_URL)
   .then(response => response.text())
   .then(csvText => {
     const rows = csvText.trim().split('\n').map(row => row.split(','));
     const headers = rows.shift();
-    const data = rows.map(row => Object.fromEntries(headers.map((h, i) => [h.trim(), row[i].trim()])));
+    const data = rows.map(row => Object.fromEntries(headers.map((h, i) => [h.trim(), row[i]?.trim() || ""])));
 
-    data.forEach((fila) => {
-      const provincia = fila.PROVINCIA.toUpperCase();
-      const marca = fila.MARCA.trim();
-      const stock = fila.STOCK;
-      const logo = fila.LOGO;
+    const provincias = [...new Set(data.map(d => d.PROVINCIA.toUpperCase()))];
 
-      const clave = `${provincia}_${marca}`;
-      const coords = coordenadas[clave];
-      if (!coords) return;
+    provincias.forEach((provincia) => {
+      const baseCoords = coordenadas[provincia];
+      if (!baseCoords) return;
 
-      const html = `
-        <div class='popup-content'>
-          <strong>${provincia}</strong>
-          <div class='marca-separator'></div>
-          <div class='marca-logo'>
-            <div class="info-marca"><img src="${logo}" alt="logo"> <strong>${marca}</strong></div>
-            <div class="stock">${stock}</div>
+      const datosProvincia = data.filter(d => d.PROVINCIA.toUpperCase() === provincia);
+
+      datosProvincia.forEach((fila, index) => {
+        const logo = fila.LOGO;
+        const marca = fila.MARCA;
+        const stock = fila.STOCK;
+
+        const offsetLat = baseCoords[0] + (index - Math.floor(datosProvincia.length / 2)) * OFFSET_Y;
+        const offsetLng = baseCoords[1];
+
+        const html = `
+          <div class='popup-content'>
+            <strong>${provincia}</strong>
+            <div class='marca-separator'></div>
+            <div class='marca-logo'>
+              <div class="info-marca">
+                <img src="${logo}" alt="logo"> <strong>${marca}</strong>
+              </div>
+              <div class="stock">${stock}</div>
+            </div>
           </div>
-        </div>
-      `;
+        `;
 
-      L.marker(coords)
-        .addTo(mapa)
-        .bindTooltip(html, {
-          permanent: true,
-          direction: "top",
-          className: "popup-content",
-          offset: [0, -10]
-        });
+        L.marker([offsetLat, offsetLng], { icon: L.divIcon({ className: 'invisible-icon' }) })
+          .addTo(mapa)
+          .bindTooltip(html, {
+            permanent: true,
+            direction: "top",
+            className: "popup-content",
+            offset: [0, -8]
+          });
+      });
     });
   });
 
+// Eliminar puntos azules (usamos icono invisible)
+L.Icon.Default.prototype.options.iconUrl = '';
+L.Icon.Default.prototype.options.shadowUrl = '';
+L.Icon.Default.prototype.options.iconRetinaUrl = '';
+
+// Buscar provincia
 document.getElementById("search-input").addEventListener("keydown", function (e) {
   if (e.key === "Enter") {
     const buscada = this.value.trim().toUpperCase();
-    const coords = Object.keys(coordenadas).find(k => k.startsWith(buscada));
-    if (coords) {
-      mapa.setView(coordenadas[coords], 8);
+    if (coordenadas[buscada]) {
+      mapa.setView(coordenadas[buscada], 8);
     } else {
       alert("Provincia no encontrada.");
     }
