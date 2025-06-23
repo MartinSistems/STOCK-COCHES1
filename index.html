@@ -8,20 +8,16 @@
   <style>
     #map { height: 100vh; width: 100%; }
 
-    .popup-base {
+    .popup-content {
       font-family: Arial, sans-serif;
       font-size: 11px;
       line-height: 1.2;
       max-width: 200px;
-      border-radius: 6px;
-      padding: 6px;
+      border-radius: 4px;
+      padding: 4px;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
       color: white;
     }
-
-    .color-azul    { background-color: #4a86e8; }
-    .color-verde   { background-color: #6aa84f; }
-    .color-amarillo { background-color: #ffd966; color: black; }
-    .color-rojo    { background-color: #cc0000; }
 
     .marca-logo {
       display: flex;
@@ -30,13 +26,19 @@
       gap: 6px;
     }
 
-    .marca-logo .info-marca {
+    .info-marca {
       display: flex;
       align-items: center;
       flex: 1;
+      min-width: 0;
       overflow: hidden;
       white-space: nowrap;
       text-overflow: ellipsis;
+    }
+
+    .stock {
+      flex-shrink: 0;
+      font-weight: bold;
     }
 
     .marca-logo img {
@@ -45,17 +47,15 @@
       margin-right: 4px;
     }
 
-    .stock {
-      font-weight: bold;
-      flex-shrink: 0;
-    }
+    /* Colores por provincia */
+    .bg-barcelona   { background-color: #3c78d8; } /* Azul */
+    .bg-valencia    { background-color: #38761d; } /* Verde */
+    .bg-madrid      { background-color: #f1c232; } /* Amarillo */
+    .bg-vigo        { background-color: #cc0000; } /* Rojo */
+    .bg-default     { background-color: #999999; } /* Gris si no coincide */
   </style>
 </head>
 <body>
-
-<div id="search-container" style="position:absolute;top:10px;left:50%;transform:translateX(-50%);z-index:1000;background:white;padding:6px;border-radius:4px;box-shadow:0 2px 4px rgba(0,0,0,0.15);">
-  <input id="search-input" type="text" placeholder="Buscar provincia..." style="padding:4px;width:220px;border-radius:4px;border:1px solid #ccc;">
-</div>
 
 <div id="map"></div>
 
@@ -80,19 +80,28 @@ fetch(CSV_URL)
     const data = rows.map(row => Object.fromEntries(headers.map((h, i) => [h, row[i]?.trim() || ""])));
 
     data.forEach(fila => {
-      const color = fila.COLOR?.toLowerCase();
+      const provincia = fila.PROVINCIA?.toUpperCase();
       const marca = fila.MARCA;
       const stock = fila.STOCK;
       const logo = fila.LOGO;
       const lat = parseFloat(fila.LATITUD.replace(",", "."));
       const lon = parseFloat(fila.LONGITUD.replace(",", "."));
 
+      // Color de fondo según provincia
+      let bgClass = 'bg-default';
+      if (provincia === 'BARCELONA') bgClass = 'bg-barcelona';
+      else if (provincia === 'VALENCIA') bgClass = 'bg-valencia';
+      else if (provincia === 'MADRID') bgClass = 'bg-madrid';
+      else if (provincia === 'VIGO') bgClass = 'bg-vigo';
+
       if (!isNaN(lat) && !isNaN(lon)) {
-        const claseColor = `color-${color}`;
         const html = `
-          <div class='popup-base ${claseColor}'>
+          <div class='popup-content ${bgClass}'>
             <div class='marca-logo'>
-              <div class="info-marca"><img src="${logo}" alt="logo"> <strong>${marca}</strong></div>
+              <div class="info-marca">
+                <img src="${logo}" alt="logo">
+                <strong>${marca}</strong>
+              </div>
               <div class="stock">${stock}</div>
             </div>
           </div>`;
@@ -100,22 +109,16 @@ fetch(CSV_URL)
         L.tooltip({
           permanent: true,
           direction: "top",
-          className: "", // vacío para que no sobreescriba
+          className: "",
           offset: [0, -10],
           opacity: 1
         })
-        .setContent(html)
         .setLatLng([lat, lon])
+        .setContent(html)
         .addTo(mapa);
       }
     });
   });
-
-document.getElementById("search-input").addEventListener("keydown", function (e) {
-  if (e.key === "Enter") {
-    alert("Este buscador solo centra el mapa. Asegúrate de que cada provincia tenga coordenadas.");
-  }
-});
 </script>
 </body>
 </html>
