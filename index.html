@@ -21,12 +21,9 @@
       gap: 10px;
       width: 100%;
     }
-
     .marca-logo span {
       display: inline-block;
     }
-
-
     .marca-logo img {
       width: 24px;
       height: 24px;
@@ -43,12 +40,12 @@
 <div id="search-container" style="position:absolute;top:10px;left:50%;transform:translateX(-50%);z-index:1000;background:white;padding:8px;border-radius:6px;box-shadow:0 2px 6px rgba(0,0,0,0.2);">
   <input id="search-input" type="text" placeholder="Buscar provincia..." style="padding:6px;width:250px;border-radius:4px;border:1px solid #ccc;">
 </div>
- 
+
 <div id="map"></div>
 
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 <script>
-const mapa = L.map('map').setView([42.5, -1.5], 5.7);
+const mapa = L.map('map').setView([42.5, -1.5], 5.7); // Ajuste de zoom para ver España + alrededores
 
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
   attribution: '© OpenStreetMap contributors',
@@ -80,11 +77,19 @@ fetch(CSV_URL)
       let html = `<div class='popup-content'><strong>${provincia}</strong>`;
 
       datosProvincia.forEach((fila) => {
+        const logo = fila.LOGO;
+        const marca = fila.MARCA;
+        const stock = fila.STOCK;
+
         html += `<div class='marca-separator'></div>`;
-        html += `<div class='marca-logo'><span><img src="${deMarca[0]["LOGO"]}" alt="logo"> <strong>${marca}</strong></span><span>${totalUnidades} unidades</span></div>`;
+        html += `<div class='marca-logo'>
+                  <span><img src="${logo}" alt="logo"> <strong>${marca}</strong></span>
+                  <span>${stock}</span>
+                 </div>`;
       });
 
       html += `</div>`;
+
       L.marker(coords)
         .addTo(mapa)
         .bindTooltip(html, {
@@ -93,7 +98,6 @@ fetch(CSV_URL)
           className: "popup-content",
           offset: [0, -10]
         });
-
     });
   });
 
