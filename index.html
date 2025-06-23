@@ -63,7 +63,7 @@
 const mapa = L.map('map', {
   zoomControl: true,
   attributionControl: false
-}).setView([40.4, -3.5], 7.2); // Zoom más centrado sobre España
+}).setView([40.4, -3.5], 7.5); // Zoom centrado en España
 
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
   detectRetina: true
@@ -71,45 +71,22 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
 
 const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRo1GdeHBhvINfcrAmPKvUmgU2jAIThFYNSg_TjOd3w-MyKe3gmzxEft6wz6-CN3WSsTpEgq1TabODC/pub?gid=0&single=true&output=csv';
 
-const coordenadas = {
-  "MADRID": [40.4168, -3.7038],
-  "BARCELONA": [41.38879, 2.15899],
-  "VALENCIA": [39.47391, -0.37966]
-};
-
 fetch(CSV_URL)
   .then(response => response.text())
   .then(csvText => {
     const rows = csvText.trim().split('\n').map(row => row.split(','));
-    const headers = rows.shift();
-    const data = rows.map(row => Object.fromEntries(headers.map((h, i) => [h.trim(), row[i]?.trim() || ""])));
+    const headers = rows.shift().map(h => h.trim());
+    const data = rows.map(row => Object.fromEntries(headers.map((h, i) => [h, row[i]?.trim() || ""])));
 
-    const agrupados = {};
+    data.forEach(fila => {
+      const provincia = fila.PROVINCIA?.toUpperCase();
+      const marca = fila.MARCA;
+      const stock = fila.STOCK;
+      const logo = fila.LOGO;
+      const lat = parseFloat(fila.LATITUD);
+      const lon = parseFloat(fila.LONGITUD);
 
-    // Agrupamos por provincia
-    data.forEach(d => {
-      const prov = d.PROVINCIA.toUpperCase();
-      if (!agrupados[prov]) agrupados[prov] = [];
-      agrupados[prov].push(d);
-    });
-
-    Object.entries(agrupados).forEach(([provincia, marcas]) => {
-      const base = coordenadas[provincia];
-      if (!base) return;
-
-      // Desplazamientos circulares por cada marca
-      const radio = 0.12; // distancia de separación
-      const step = (2 * Math.PI) / marcas.length;
-
-      marcas.forEach((fila, i) => {
-        const angle = i * step;
-        const lat = base[0] + radio * Math.sin(angle);
-        const lon = base[1] + radio * Math.cos(angle);
-
-        const logo = fila.LOGO;
-        const marca = fila.MARCA;
-        const stock = fila.STOCK;
-
+      if (!isNaN(lat) && !isNaN(lon)) {
         const html = `<div class='popup-content'><strong>${provincia}</strong>
           <div class='marca-separator'></div>
           <div class='marca-logo'>
@@ -126,21 +103,16 @@ fetch(CSV_URL)
         .setContent(html)
         .setLatLng([lat, lon])
         .addTo(mapa);
-      });
+      }
     });
   });
 
 document.getElementById("search-input").addEventListener("keydown", function (e) {
   if (e.key === "Enter") {
-    const buscada = this.value.trim().toUpperCase();
-    if (coordenadas[buscada]) {
-      mapa.setView(coordenadas[buscada], 8);
-    } else {
-      alert("Provincia no encontrada.");
-    }
+    const prov = this.value.trim().toUpperCase();
+    alert("Para buscar correctamente, asegúrate de que cada entrada tiene su LATITUD/LONGITUD asignadas. Este buscador solo cambia el centro del mapa.");
   }
 });
 </script>
 </body>
 </html>
-
