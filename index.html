@@ -1,4 +1,4 @@
-  <!DOCTYPE html>
+<!DOCTYPE html>
 <html>
 <head>
   <meta charset="utf-8">
@@ -60,11 +60,42 @@
     .bg-madrid      { background-color: #f1c232; } /* Amarillo */
     .bg-vigo        { background-color: #cc0000; } /* Rojo */
     .bg-default     { background-color: #999999; } /* Gris si no coincide */
+
+    /* Leyenda camiones */
+    #camion-legend {
+      position: absolute;
+      bottom: 10px;
+      left: 10px;
+      z-index: 1000;
+      background: white;
+      padding: 10px 14px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-family: Arial, sans-serif;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+      max-width: 250px;
+    }
+
+    #camion-legend ul {
+      list-style: none;
+      padding-left: 0;
+      margin-top: 6px;
+    }
+
+    #camion-legend li {
+      margin-bottom: 4px;
+    }
   </style>
 </head>
 <body>
 
 <div id="map"></div>
+
+<!-- Leyenda de camiones -->
+<div id="camion-legend">
+  <strong style="font-size:13px;">Camiones por provincia:</strong>
+  <ul id="camion-list"></ul>
+</div>
 
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 <script>
@@ -94,7 +125,6 @@ fetch(CSV_URL)
       const lat = parseFloat(fila.LATITUD.replace(",", "."));
       const lon = parseFloat(fila.LONGITUD.replace(",", "."));
 
-      // Color de fondo según provincia
       let bgClass = 'bg-default';
       if (provincia === 'BARCELONA') bgClass = 'bg-barcelona';
       else if (provincia === 'VALENCIA') bgClass = 'bg-valencia';
@@ -124,6 +154,24 @@ fetch(CSV_URL)
         .setContent(html)
         .addTo(mapa);
       }
+    });
+  });
+
+// === CARGAR CAMIONES EN LEYENDA ===
+const CAMIONES_CSV = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRo1GdeHBhvINfcrAmPKvUmgU2jAIThFYNSg_TjOd3w-MyKe3gmzxEft6wz6-CN3WSsTpEgq1TabODC/pub?gid=614991280&single=true&output=csv';
+
+fetch(CAMIONES_CSV)
+  .then(resp => resp.text())
+  .then(text => {
+    const lines = text.trim().split('\n').map(l => l.split(','));
+    const headers = lines.shift().map(h => h.trim());
+    const camiones = lines.map(row => Object.fromEntries(headers.map((h, i) => [h, row[i]?.trim() || ""])));
+
+    const ul = document.getElementById("camion-list");
+    camiones.forEach(camion => {
+      const li = document.createElement("li");
+      li.textContent = `${camion.PROVINCIA}: ${camion['Nº CAMIONES']} (${camion.TIPO})`;
+      ul.appendChild(li);
     });
   });
 </script>
