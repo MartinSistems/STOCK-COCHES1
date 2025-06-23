@@ -48,6 +48,20 @@
       border-top: 1px solid #ccc;
       margin: 6px 0;
     }
+
+    .provincia-tag {
+      padding: 4px 8px;
+      font-weight: bold;
+      color: white;
+      border-radius: 4px;
+      display: inline-block;
+      font-size: 12px;
+    }
+
+    .provincia-azul { background-color: #4a86e8; }
+    .provincia-verde { background-color: #6aa84f; }
+    .provincia-amarillo { background-color: #ffd966; color: #000; }
+    .provincia-rojo { background-color: #cc0000; }
   </style>
 </head>
 <body>
@@ -80,19 +94,22 @@ fetch(CSV_URL)
 
     data.forEach(fila => {
       const provincia = fila.PROVINCIA?.toUpperCase();
+      const color = fila.COLOR?.toLowerCase(); // ← este campo lo debes tener en tu hoja
       const marca = fila.MARCA;
       const stock = fila.STOCK;
       const logo = fila.LOGO;
-      const lat = parseFloat(fila.LATITUD);
-      const lon = parseFloat(fila.LONGITUD);
+      const lat = parseFloat(fila.LATITUD.replace(",", "."));
+      const lon = parseFloat(fila.LONGITUD.replace(",", "."));
 
       if (!isNaN(lat) && !isNaN(lon)) {
-        const html = `<div class='popup-content'><strong>${provincia}</strong>
-          <div class='marca-separator'></div>
-          <div class='marca-logo'>
-            <div class="info-marca"><img src="${logo}" alt="logo"> <strong>${marca}</strong></div>
-            <div class="stock">${stock}</div>
-          </div></div>`;
+        const html = `<div class='popup-content'>
+            <div class="provincia-tag provincia-${color}">${provincia}</div>
+            <div class='marca-separator'></div>
+            <div class='marca-logo'>
+              <div class="info-marca"><img src="${logo}" alt="logo"> <strong>${marca}</strong></div>
+              <div class="stock">${stock}</div>
+            </div>
+          </div>`;
 
         L.tooltip({
           permanent: true,
@@ -109,8 +126,7 @@ fetch(CSV_URL)
 
 document.getElementById("search-input").addEventListener("keydown", function (e) {
   if (e.key === "Enter") {
-    const prov = this.value.trim().toUpperCase();
-    alert("Para buscar correctamente, asegúrate de que cada entrada tiene su LATITUD/LONGITUD asignadas. Este buscador solo cambia el centro del mapa.");
+    alert("Este buscador solo mueve el mapa, asegúrate de que haya coordenadas válidas para la provincia buscada.");
   }
 });
 </script>
