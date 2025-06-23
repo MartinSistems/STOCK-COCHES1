@@ -72,7 +72,7 @@ fetch(CSV_URL)
 
       datosProvincia.forEach((fila) => {
         html += `<div class='marca-separator'></div>`;
-        html += `<div class='marca-logo'><img src="${fila["LOGO"]}" alt="logo"> <strong>${fila["MARCA"]}</strong> - ${fila["STOCK"]}</div>`;
+        html += `<div class='marca-logo'><img src="${fila["LOGO"]}" alt="logo"> <strong>${fila["MARCA"]}</strong> ${fila["STOCK"]}</div>`;
       });
 
       html += `</div>`;
