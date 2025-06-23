@@ -38,10 +38,6 @@
       height: 18px;
       margin-right: 5px;
     }
-    .marca-separator {
-      border-top: 1px solid #ccc;
-      margin: 8px 0;
-    }
   </style>
 </head>
 <body>
@@ -63,11 +59,19 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
 
 const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRo1GdeHBhvINfcrAmPKvUmgU2jAIThFYNSg_TjOd3w-MyKe3gmzxEft6wz6-CN3WSsTpEgq1TabODC/pub?gid=0&single=true&output=csv';
 
+// Coordenadas generales de provincias por defecto
 const coordenadas = {
   "MADRID": [40.4168, -3.7038],
   "BARCELONA": [41.38879, 2.15899],
   "VALENCIA": [39.47391, -0.37966]
 };
+
+// Función para dispersar ligeramente las coordenadas (aleatoriamente)
+function getDesplazamientoCoords([lat, lng]) {
+  const desplazamiento = (Math.random() - 0.5) * 0.3; // ajusta este valor si hace falta más o menos separación
+  const desplazamientoLat = (Math.random() - 0.5) * 0.3;
+  return [lat + desplazamientoLat, lng + desplazamiento];
+}
 
 fetch(CSV_URL)
   .then(response => response.text())
@@ -82,14 +86,18 @@ fetch(CSV_URL)
       const stock = fila.STOCK;
       const logo = fila.LOGO;
 
-      // Coordenadas personalizadas o de la provincia
-      const lat = parseFloat(fila.LATITUD);
-      const lng = parseFloat(fila.LONGITUD);
-      const coords = (!isNaN(lat) && !isNaN(lng))
-        ? [lat, lng]
-        : coordenadas[prov];
+      // Coordenadas personalizadas
+      let lat = parseFloat(fila.LATITUD);
+      let lng = parseFloat(fila.LONGITUD);
+      let coords;
 
-      if (!coords) return;
+      if (!isNaN(lat) && !isNaN(lng)) {
+        coords = [lat, lng];
+      } else if (coordenadas[prov]) {
+        coords = getDesplazamientoCoords(coordenadas[prov]); // dispersa dentro de la provincia
+      } else {
+        return; // si no hay coordenadas disponibles, saltar
+      }
 
       const html = `<div class='popup-content'>
         <div class='marca-logo'>
@@ -98,7 +106,7 @@ fetch(CSV_URL)
         </div>
       </div>`;
 
-      L.marker(coords, { opacity: 0 })  // invisible marker
+      L.marker(coords, { opacity: 0 })  // marcador invisible
         .addTo(mapa)
         .bindTooltip(html, {
           permanent: true,
