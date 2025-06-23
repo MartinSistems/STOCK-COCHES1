@@ -1,0 +1,104 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Mapa de Stock de Coches</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <style>
+    #map { height: 100vh; width: 100%; }
+    .popup-content {
+      font-family: Arial, sans-serif;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+    .marca-logo {
+      display: flex;
+      align-items: center;
+      margin-top: 8px;
+      margin-bottom: 4px;
+    }
+    .marca-logo img {
+      width: 24px;
+      height: 24px;
+      margin-right: 8px;
+    }
+    .marca-separator {
+      border-top: 1px solid #ccc;
+      margin: 10px 0;
+    }
+  </style>
+</head>
+<body>
+
+<div id="search-container" style="position:absolute;top:10px;left:50%;transform:translateX(-50%);z-index:1000;background:white;padding:8px;border-radius:6px;box-shadow:0 2px 6px rgba(0,0,0,0.2);">
+  <input id="search-input" type="text" placeholder="Buscar provincia..." style="padding:6px;width:250px;border-radius:4px;border:1px solid #ccc;">
+</div>
+
+<div id="map"></div>
+
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<script>
+const mapa = L.map('map').setView([48.8566, 2.3522], 5); // Centrado en Europa
+
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  attribution: '© OpenStreetMap contributors',
+  detectRetina: true
+}).addTo(mapa);
+
+const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRo1GdeHBhvINfcrAmPKvUmgU2jAIThFYNSg_TjOd3w-MyKe3gmzxEft6wz6-CN3WSsTpEgq1TabODC/pub?gid=0&single=true&output=csv';
+
+const coordenadas = {
+  "MADRID": [40.4168, -3.7038],
+  "LYON": [45.75, 4.85],
+  "BERLIN": [52.52, 13.405]
+};
+
+fetch(CSV_URL)
+  .then(response => response.text())
+  .then(csvText => {
+    const rows = csvText.trim().split('\n').map(row => row.split(','));
+    const headers = rows.shift();
+    const data = rows.map(row => Object.fromEntries(headers.map((h, i) => [h.trim(), row[i].trim()])));
+
+    const provincias = [...new Set(data.map(d => d.PROVINCIA.toUpperCase()))];
+
+    provincias.forEach((provincia) => {
+      const coords = coordenadas[provincia];
+      if (!coords) return;
+
+      const datosProvincia = data.filter(d => d.PROVINCIA.toUpperCase() === provincia);
+      let html = `<div class='popup-content'><strong>${provincia}</strong>`;
+      const marcasUnicas = [...new Set(datosProvincia.map(d => d.MARCA))];
+
+      marcasUnicas.forEach((marca) => {
+        const deMarca = datosProvincia.filter(d => d.MARCA === marca);
+        const totalUnidades = deMarca.reduce((acc, val) => acc + parseInt(val.STOCK || "0"), 0);
+        html += `<div class='marca-separator'></div>`;
+        html += `<div class='marca-logo'><img src="${deMarca[0]["LOGO"]}" alt="logo"> <strong>${marca}</strong> – ${totalUnidades} unidades</div>`;
+      });
+
+      html += `</div>`;
+      L.marker(coords).addTo(mapa).bindPopup(html);
+    });
+  });
+
+document.getElementById("search-input").addEventListener("keydown", function (e) {
+  if (e.key === "Enter") {
+    const buscada = this.value.trim().toUpperCase();
+    if (coordenadas[buscada]) {
+      mapa.setView(coordenadas[buscada], 8);
+      mapa.eachLayer(layer => {
+        if (layer.getLatLng && layer.getLatLng().lat === coordenadas[buscada][0] && layer.getLatLng().lng === coordenadas[buscada][1] && layer.getPopup) {
+          layer.openPopup();
+        }
+      });
+    } else {
+      alert("Provincia no encontrada.");
+    }
+  }
+});
+</script>
+</body>
+</html>
