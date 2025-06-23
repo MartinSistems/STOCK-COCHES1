@@ -73,44 +73,39 @@ fetch(CSV_URL)
   .then(response => response.text())
   .then(csvText => {
     const rows = csvText.trim().split('\n').map(row => row.split(','));
-    const headers = rows.shift();
-    const data = rows.map(row => Object.fromEntries(headers.map((h, i) => [h.trim(), row[i].trim()])));
+    const headers = rows.shift().map(h => h.trim());
+    const data = rows.map(row => Object.fromEntries(headers.map((h, i) => [h, row[i] ? row[i].trim() : ""])));
 
-    const provincias = [...new Set(data.map(d => d.PROVINCIA.toUpperCase()))];
+    data.forEach((fila) => {
+      const prov = fila.PROVINCIA?.toUpperCase();
+      const marca = fila.MARCA;
+      const stock = fila.STOCK;
+      const logo = fila.LOGO;
 
-    provincias.forEach((provincia) => {
-      const baseCoords = coordenadas[provincia];
-      if (!baseCoords) return;
+      // Coordenadas personalizadas o de la provincia
+      const lat = parseFloat(fila.LATITUD);
+      const lng = parseFloat(fila.LONGITUD);
+      const coords = (!isNaN(lat) && !isNaN(lng))
+        ? [lat, lng]
+        : coordenadas[prov];
 
-      const datosProvincia = data.filter(d => d.PROVINCIA.toUpperCase() === provincia);
-      const angleStep = 2 * Math.PI / datosProvincia.length;
+      if (!coords) return;
 
-      datosProvincia.forEach((fila, index) => {
-        const angle = angleStep * index;
-        const offsetLat = 0.25 * Math.cos(angle);
-        const offsetLng = 0.25 * Math.sin(angle);
-        const coords = [baseCoords[0] + offsetLat, baseCoords[1] + offsetLng];
+      const html = `<div class='popup-content'>
+        <div class='marca-logo'>
+          <div class="info-marca"><img src="${logo}" alt="logo"> <strong>${marca}</strong></div>
+          <div class="stock">${stock}</div>
+        </div>
+      </div>`;
 
-        const logo = fila.LOGO;
-        const marca = fila.MARCA;
-        const stock = fila.STOCK;
-
-        const html = `<div class='popup-content'>
-          <div class='marca-logo'>
-            <div class="info-marca"><img src="${logo}" alt="logo"> <strong>${marca}</strong></div>
-            <div class="stock">${stock}</div>
-          </div>
-        </div>`;
-
-        L.marker(coords, { opacity: 0 }) // marcador invisible
-          .addTo(mapa)
-          .bindTooltip(html, {
-            permanent: true,
-            direction: "top",
-            className: "popup-content",
-            offset: [0, -8]
-          });
-      });
+      L.marker(coords, { opacity: 0 })  // invisible marker
+        .addTo(mapa)
+        .bindTooltip(html, {
+          permanent: true,
+          direction: "top",
+          className: "popup-content",
+          offset: [0, -8]
+        });
     });
   });
 
