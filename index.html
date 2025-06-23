@@ -8,18 +8,25 @@
   <style>
     #map { height: 100vh; width: 100%; }
 
-    .popup-content {
+    .popup-base {
       font-family: Arial, sans-serif;
       font-size: 11px;
       line-height: 1.2;
       max-width: 200px;
+      border-radius: 6px;
+      padding: 6px;
+      color: white;
     }
+
+    .color-azul    { background-color: #4a86e8; }
+    .color-verde   { background-color: #6aa84f; }
+    .color-amarillo { background-color: #ffd966; color: black; }
+    .color-rojo    { background-color: #cc0000; }
 
     .marca-logo {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      margin-top: 6px;
       gap: 6px;
     }
 
@@ -27,15 +34,9 @@
       display: flex;
       align-items: center;
       flex: 1;
-      min-width: 0;
       overflow: hidden;
       white-space: nowrap;
       text-overflow: ellipsis;
-    }
-
-    .marca-logo .stock {
-      flex-shrink: 0;
-      font-weight: bold;
     }
 
     .marca-logo img {
@@ -44,24 +45,10 @@
       margin-right: 4px;
     }
 
-    .marca-separator {
-      border-top: 1px solid #ccc;
-      margin: 6px 0;
-    }
-
-    .provincia-tag {
-      padding: 4px 8px;
+    .stock {
       font-weight: bold;
-      color: white;
-      border-radius: 4px;
-      display: inline-block;
-      font-size: 12px;
+      flex-shrink: 0;
     }
-
-    .provincia-azul { background-color: #4a86e8; }
-    .provincia-verde { background-color: #6aa84f; }
-    .provincia-amarillo { background-color: #ffd966; color: #000; }
-    .provincia-rojo { background-color: #cc0000; }
   </style>
 </head>
 <body>
@@ -77,7 +64,7 @@
 const mapa = L.map('map', {
   zoomControl: true,
   attributionControl: false
-}).setView([40.4, -3.5], 7.2); // Zoom más centrado sobre España
+}).setView([40.4, -3.5], 7.2);
 
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
   detectRetina: true
@@ -93,8 +80,7 @@ fetch(CSV_URL)
     const data = rows.map(row => Object.fromEntries(headers.map((h, i) => [h, row[i]?.trim() || ""])));
 
     data.forEach(fila => {
-      const provincia = fila.PROVINCIA?.toUpperCase();
-      const color = fila.COLOR?.toLowerCase(); // ← este campo lo debes tener en tu hoja
+      const color = fila.COLOR?.toLowerCase();
       const marca = fila.MARCA;
       const stock = fila.STOCK;
       const logo = fila.LOGO;
@@ -102,9 +88,9 @@ fetch(CSV_URL)
       const lon = parseFloat(fila.LONGITUD.replace(",", "."));
 
       if (!isNaN(lat) && !isNaN(lon)) {
-        const html = `<div class='popup-content'>
-            <div class="provincia-tag provincia-${color}">${provincia}</div>
-            <div class='marca-separator'></div>
+        const claseColor = `color-${color}`;
+        const html = `
+          <div class='popup-base ${claseColor}'>
             <div class='marca-logo'>
               <div class="info-marca"><img src="${logo}" alt="logo"> <strong>${marca}</strong></div>
               <div class="stock">${stock}</div>
@@ -114,8 +100,9 @@ fetch(CSV_URL)
         L.tooltip({
           permanent: true,
           direction: "top",
-          className: "popup-content",
-          offset: [0, -10]
+          className: "", // vacío para que no sobreescriba
+          offset: [0, -10],
+          opacity: 1
         })
         .setContent(html)
         .setLatLng([lat, lon])
@@ -126,7 +113,7 @@ fetch(CSV_URL)
 
 document.getElementById("search-input").addEventListener("keydown", function (e) {
   if (e.key === "Enter") {
-    alert("Este buscador solo mueve el mapa, asegúrate de que haya coordenadas válidas para la provincia buscada.");
+    alert("Este buscador solo centra el mapa. Asegúrate de que cada provincia tenga coordenadas.");
   }
 });
 </script>
