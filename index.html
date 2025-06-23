@@ -74,11 +74,11 @@ fetch(CSV_URL)
 
       marcasUnicas.forEach((marca) => {
         const deMarca = datosProvincia.filter(d => d.MARCA === marca);
-        deMarca.forEach((fila) => {
-          html += `<div class='marca-separator'></div>`;
-          html += `<div class='marca-logo'><img src="${fila["LOGO"]}" alt="logo"> <strong>${fila["MARCA"]}</strong> - ${fila["STOCK"]}</div>`;
-});
+        const totalUnidades = deMarca.reduce((acc, val) => acc + parseInt(val.STOCK || "0"), 0);
+        html += `<div class='marca-separator'></div>`;
+        html += `<div class='marca-logo'><img src="${deMarca[0]["LOGO"]}" alt="logo"> <strong>${marca}</strong> - ${totalUnidades} unidades</div>`;
 
+      });
 
       html += `</div>`;
       L.marker(coords).addTo(mapa).bindTooltip(html, { permanent: true, direction: "top", className: "popup-content" });
