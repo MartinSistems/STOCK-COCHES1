@@ -102,7 +102,14 @@
 const mapa = L.map('map', {
   zoomControl: true,
   attributionControl: false
-}).setView([40.4, -3.5], 7.2);
+});
+
+const bounds = L.latLngBounds(
+  [27.5, -12.5],  // Suroeste: más allá de Canarias y Marruecos
+  [50.5, 20.0]    // Noreste: incluye norte de Francia, Suiza, Italia
+);
+
+mapa.fitBounds(bounds);
 
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
   detectRetina: true
@@ -170,7 +177,9 @@ fetch(CAMIONES_CSV)
     const ul = document.getElementById("camion-list");
     camiones.forEach(camion => {
       const li = document.createElement("li");
-      li.textContent = `${camion.PROVINCIA}: ${camion['Nº CAMIONES']} (${camion.TIPO})`;
+      const tipo = camion.TIPO ? ` (${camion.TIPO})` : '';
+      li.textContent = `${camion.PROVINCIA}: ${camion['Nº CAMIONES']}${tipo}`;
+
       ul.appendChild(li);
     });
   });
