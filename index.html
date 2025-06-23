@@ -7,14 +7,11 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
   <style>
     #map { height: 100vh; width: 100%; }
-
     .popup-content {
       font-family: Arial, sans-serif;
       font-size: 12px;
-      line-height: 1.3;
-      max-width: 220px;
+      line-height: 1.4;
     }
-
     .marca-logo {
       display: flex;
       align-items: center;
@@ -24,7 +21,6 @@
       gap: 8px;
       width: 100%;
     }
-
     .marca-logo .info-marca {
       display: flex;
       align-items: center;
@@ -34,33 +30,27 @@
       white-space: nowrap;
       text-overflow: ellipsis;
     }
-
     .marca-logo .stock {
       flex-shrink: 0;
       font-weight: bold;
       margin-left: 6px;
     }
-
     .marca-logo img {
       width: 20px;
       height: 20px;
       margin-right: 6px;
     }
-
     .marca-separator {
       border-top: 1px solid #ccc;
-      margin: 8px 0;
+      margin: 6px 0;
     }
   </style>
 </head>
 <body>
-
-<div id="search-container" style="position:absolute;top:10px;left:50%;transform:translateX(-50%);z-index:1000;background:white;padding:6px;border-radius:6px;box-shadow:0 2px 6px rgba(0,0,0,0.2);">
-  <input id="search-input" type="text" placeholder="Buscar provincia..." style="padding:4px;width:230px;border-radius:4px;border:1px solid #ccc;">
+<div id="search-container" style="position:absolute;top:10px;left:50%;transform:translateX(-50%);z-index:1000;background:white;padding:8px;border-radius:6px;box-shadow:0 2px 6px rgba(0,0,0,0.2);">
+  <input id="search-input" type="text" placeholder="Buscar provincia..." style="padding:6px;width:250px;border-radius:4px;border:1px solid #ccc;">
 </div>
-
 <div id="map"></div>
-
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 <script>
 const mapa = L.map('map').setView([42.5, -1.5], 5.7);
@@ -73,15 +63,17 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
 const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRo1GdeHBhvINfcrAmPKvUmgU2jAIThFYNSg_TjOd3w-MyKe3gmzxEft6wz6-CN3WSsTpEgq1TabODC/pub?gid=0&single=true&output=csv';
 
 const coordenadas = {
-  "MADRID": [40.4168, -3.7038],
-  "BARCELONA": [41.38879, 2.15899],
-  "VALENCIA": [39.47391, -0.37966]
-};
+  "BARCELONA_MG": [41.38879, 2.15899],
+  "BARCELONA_OMODA": [41.38849, 2.15869],
+  "BARCELONA_RENAULT": [41.38819, 2.15839],
+  "BARCELONA_MERCEDES": [41.38789, 2.15809],
+  "BARCELONA_INTERCAMPA": [41.38759, 2.15779],
 
-const offsetsPersonalizados = {
-  "VALENCIA": -10,
-  "BARCELONA": -90,
-  "MADRID": -170
+  "VALENCIA_STELLANTIS ZAG.": [39.47391, -0.37966],
+  "VALENCIA_STELLANTIS MAD.": [39.47361, -0.37936],
+  "VALENCIA_FORD FR.": [39.47331, -0.37906],
+  "VALENCIA_FORD BCN.": [39.47301, -0.37876],
+  "VALENCIA_FORD B3": [39.47271, -0.37846]
 };
 
 fetch(CSV_URL)
@@ -89,30 +81,28 @@ fetch(CSV_URL)
   .then(csvText => {
     const rows = csvText.trim().split('\n').map(row => row.split(','));
     const headers = rows.shift();
-    const data = rows.map(row => Object.fromEntries(headers.map((h, i) => [h.trim(), row[i]?.trim()])));
+    const data = rows.map(row => Object.fromEntries(headers.map((h, i) => [h.trim(), row[i].trim()])));
 
-    const provincias = [...new Set(data.map(d => d.PROVINCIA.toUpperCase()))];
+    data.forEach((fila) => {
+      const provincia = fila.PROVINCIA.toUpperCase();
+      const marca = fila.MARCA.trim();
+      const stock = fila.STOCK;
+      const logo = fila.LOGO;
 
-    provincias.forEach((provincia) => {
-      const coords = coordenadas[provincia];
+      const clave = `${provincia}_${marca}`;
+      const coords = coordenadas[clave];
       if (!coords) return;
 
-      const datosProvincia = data.filter(d => d.PROVINCIA.toUpperCase() === provincia);
-      let html = `<div class='popup-content'><strong>${provincia}</strong>`;
-
-      datosProvincia.forEach((fila) => {
-        const logo = fila.LOGO;
-        const marca = fila.MARCA;
-        const stock = fila.STOCK;
-
-        html += `<div class='marca-separator'></div>`;
-        html += `<div class='marca-logo'>
-          <div class="info-marca"><img src="${logo}" alt="logo"> <strong>${marca}</strong></div>
-          <div class="stock">${stock}</div>
-        </div>`;
-      });
-
-      html += `</div>`;
+      const html = `
+        <div class='popup-content'>
+          <strong>${provincia}</strong>
+          <div class='marca-separator'></div>
+          <div class='marca-logo'>
+            <div class="info-marca"><img src="${logo}" alt="logo"> <strong>${marca}</strong></div>
+            <div class="stock">${stock}</div>
+          </div>
+        </div>
+      `;
 
       L.marker(coords)
         .addTo(mapa)
@@ -120,7 +110,7 @@ fetch(CSV_URL)
           permanent: true,
           direction: "top",
           className: "popup-content",
-          offset: [0, offsetsPersonalizados[provincia] || -10]
+          offset: [0, -10]
         });
     });
   });
@@ -128,8 +118,9 @@ fetch(CSV_URL)
 document.getElementById("search-input").addEventListener("keydown", function (e) {
   if (e.key === "Enter") {
     const buscada = this.value.trim().toUpperCase();
-    if (coordenadas[buscada]) {
-      mapa.setView(coordenadas[buscada], 8);
+    const coords = Object.keys(coordenadas).find(k => k.startsWith(buscada));
+    if (coords) {
+      mapa.setView(coordenadas[coords], 8);
     } else {
       alert("Provincia no encontrada.");
     }
@@ -138,4 +129,3 @@ document.getElementById("search-input").addEventListener("keydown", function (e)
 </script>
 </body>
 </html>
-
