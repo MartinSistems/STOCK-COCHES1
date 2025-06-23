@@ -59,12 +59,11 @@
 <div id="map"></div>
 
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-
 <script>
 const mapa = L.map('map', {
   zoomControl: true,
   attributionControl: false
-}).setView([40.4, -3.5], 7.2); // Más centrado y con más zoom
+}).setView([349.4, -2.5], 6.2); // Zoom más centrado sobre España
 
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
   detectRetina: true
@@ -78,13 +77,6 @@ const coordenadas = {
   "VALENCIA": [39.47391, -0.37966]
 };
 
-// Función para obtener desplazamientos automáticos alrededor del centro
-function getDisplacement(index, total) {
-  const angle = (index / total) * 2 * Math.PI;
-  const radius = 0.12; // Radio de separación
-  return [radius * Math.sin(angle), radius * Math.cos(angle)];
-}
-
 fetch(CSV_URL)
   .then(response => response.text())
   .then(csvText => {
@@ -92,42 +84,48 @@ fetch(CSV_URL)
     const headers = rows.shift();
     const data = rows.map(row => Object.fromEntries(headers.map((h, i) => [h.trim(), row[i]?.trim() || ""])));
 
-    const provincias = [...new Set(data.map(d => d.PROVINCIA.toUpperCase()))];
+    const agrupados = {};
 
-    provincias.forEach((provincia) => {
-      const centro = coordenadas[provincia];
-      if (!centro) return;
+    // Agrupamos por provincia
+    data.forEach(d => {
+      const prov = d.PROVINCIA.toUpperCase();
+      if (!agrupados[prov]) agrupados[prov] = [];
+      agrupados[prov].push(d);
+    });
 
-      const datosProvincia = data.filter(d => d.PROVINCIA.toUpperCase() === provincia);
+    Object.entries(agrupados).forEach(([provincia, marcas]) => {
+      const base = coordenadas[provincia];
+      if (!base) return;
 
-      datosProvincia.forEach((fila, i) => {
+      // Desplazamientos circulares por cada marca
+      const radio = 0.12; // distancia de separación
+      const step = (2 * Math.PI) / marcas.length;
+
+      marcas.forEach((fila, i) => {
+        const angle = i * step;
+        const lat = base[0] + radio * Math.sin(angle);
+        const lon = base[1] + radio * Math.cos(angle);
+
         const logo = fila.LOGO;
         const marca = fila.MARCA;
         const stock = fila.STOCK;
 
-        // Desplazamiento automático para evitar solapes
-        const [dx, dy] = getDisplacement(i, datosProvincia.length);
-        const nuevaLat = centro[0] + dy;
-        const nuevaLng = centro[1] + dx;
+        const html = `<div class='popup-content'><strong>${provincia}</strong>
+          <div class='marca-separator'></div>
+          <div class='marca-logo'>
+            <div class="info-marca"><img src="${logo}" alt="logo"> <strong>${marca}</strong></div>
+            <div class="stock">${stock}</div>
+          </div></div>`;
 
-        const html = `
-          <div class='popup-content'>
-            <div class='marca-logo'>
-              <div class="info-marca"><img src="${logo}" alt="logo"> <strong>${marca}</strong></div>
-              <div class="stock">${stock}</div>
-            </div>
-          </div>`;
-
-        // Marcador invisible (sin icono) con tooltip permanente
-        L.marker([nuevaLat, nuevaLng], { icon: L.divIcon({ className: 'invisible-icon' }) })
-          .addTo(mapa)
-          .bindTooltip(html, {
-            permanent: true,
-            direction: "top",
-            className: "popup-content",
-            offset: [0, -10],
-            opacity: 1
-          });
+        L.tooltip({
+          permanent: true,
+          direction: "top",
+          className: "popup-content",
+          offset: [0, -10]
+        })
+        .setContent(html)
+        .setLatLng([lat, lon])
+        .addTo(mapa);
       });
     });
   });
@@ -145,3 +143,4 @@ document.getElementById("search-input").addEventListener("keydown", function (e)
 </script>
 </body>
 </html>
+
