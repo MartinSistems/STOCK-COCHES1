@@ -2,14 +2,22 @@
 <html>
 <head>
   <meta charset="utf-8">
+  <meta name="color-scheme" content="light only">
   <title>Mapa de Stock de Coches</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
   <style>
+    body {
+      margin: 0;
+      font-family: 'Poppins', sans-serif;
+      background: white !important;
+      color: black !important;
+    }
+
     #map { height: 100vh; width: 100%; }
 
     .popup-content {
-      font-family: Arial, sans-serif;
       font-size: 11px;
       line-height: 1.2;
       max-width: 200px;
@@ -54,144 +62,183 @@
       padding: 0 !important;
     }
 
-    /* Colores por provincia */
     .bg-barcelona   { background-color: #3c78d8; }
     .bg-valencia    { background-color: #38761d; }
     .bg-madrid      { background-color: #f1c232; }
     .bg-vigo        { background-color: #cc0000; }
     .bg-default     { background-color: #999999; }
+    .bg-madrid-1    { background-color: #ff6d01; }
 
-    /* Leyenda individual por camión */
-    #camion-legend {
+    #camion-container {
       position: absolute;
       bottom: 10px;
       left: 10px;
-      z-index: 1000;
       display: flex;
       flex-direction: column;
       gap: 10px;
-      font-family: Arial, sans-serif;
+      z-index: 1000;
     }
 
-    #camion-legend li {
+    .camion-card {
       display: flex;
       align-items: center;
+      gap: 12px;
       background: white;
-      padding: 10px 14px;
-      border-radius: 10px;
+      border-radius: 12px;
+      padding: 8px 14px;
       font-size: 15px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-      gap: 10px;
-      min-width: 160px;
+      box-shadow: 0 1px 6px rgba(0,0,0,0.15);
+      color: black;
     }
 
-    #camion-legend li::before {
-      content: "🚛";
-      font-size: 20px;
+    .camion-icon {
+      width: 26px;
+      height: 26px;
+      flex-shrink: 0;
     }
 
-    #camion-legend li span.provincia {
-      font-weight: bold;
-      flex: 1;
+    .provincia {
+      font-weight: 600;
+      font-size: 16px;
+    }
+
+    .cantidad {
+      margin-left: auto;
+      font-weight: 500;
+    }
+
+    /* Versión extrema para TV Bro */
+    .tvbro .popup-content {
+      font-size: 4px !important;
+      max-width: 85px !important;
+      padding: 1px 1px !important;
+      line-height: 1.05 !important;
+    }
+
+    .tvbro .marca-logo img {
+      width: 7px !important;
+      height: 7px !important;
+      margin-right: 1px !important;
+    }
+
+    .tvbro .camion-card {
+      font-size: 7px !important;
+      padding: 2px 5px !important;
+      gap: 4px !important;
+    }
+
+    .tvbro .provincia,
+    .tvbro .cantidad {
+      font-size: 7px !important;
     }
   </style>
 </head>
 <body>
-
 <div id="map"></div>
-
-<!-- Leyenda de camiones -->
-<ul id="camion-legend"></ul>
-
+<div id="camion-container"></div>
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 <script>
-// Recargar automáticamente cada 5 minutos
-setTimeout(() => {
-  location.reload();
-}, 300000); // 300.000 ms = 5 minutos
+  const mapa = L.map('map', {
+    zoomControl: true,
+    attributionControl: false
+  });
 
-const mapa = L.map('map', {
-  zoomControl: true,
-  attributionControl: false
-});
+  const isTVBro = navigator.userAgent.toLowerCase().includes("tv bro");
+  if (isTVBro) {
+    document.body.classList.add("tvbro");
+  }
 
-const bounds = L.latLngBounds(
-  [35.5, -10],  // Suroeste ajustado sin Canarias ni Marruecos
-  [49.5, 10]    // Noreste: Europa central
-);
-mapa.fitBounds(bounds);
+  const bounds = isTVBro ? L.latLngBounds([34.5, -14], [52, 17]) : L.latLngBounds([35.5, -10], [49.5, 10]);
+  mapa.fitBounds(bounds);
 
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-  detectRetina: true
-}).addTo(mapa);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    detectRetina: true
+  }).addTo(mapa);
 
-// === COCHES ===
-const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRo1GdeHBhvINfcrAmPKvUmgU2jAIThFYNSg_TjOd3w-MyKe3gmzxEft6wz6-CN3WSsTpEgq1TabODC/pub?gid=0&single=true&output=csv';
+  const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRo1GdeHBhvINfcrAmPKvUmgU2jAIThFYNSg_TjOd3w-MyKe3gmzxEft6wz6-CN3WSsTpEgq1TabODC/pub?gid=0&single=true&output=csv';
 
-fetch(CSV_URL)
-  .then(response => response.text())
-  .then(csvText => {
-    const rows = csvText.trim().split('\n').map(row => row.split(','));
-    const headers = rows.shift().map(h => h.trim());
-    const data = rows.map(row => Object.fromEntries(headers.map((h, i) => [h, row[i]?.trim() || ""])));
+  fetch(CSV_URL)
+    .then(response => response.text())
+    .then(csvText => {
+      const rows = csvText.trim().split('\n').map(row => row.split(','));
+      const headers = rows.shift().map(h => h.trim());
+      const data = rows.map(row => Object.fromEntries(headers.map((h, i) => [h, row[i]?.trim() || ""])));
 
-    data.forEach(fila => {
-      const provincia = fila.PROVINCIA?.toUpperCase();
-      const marca = fila.MARCA;
-      const stock = fila.STOCK;
-      const logo = fila.LOGO;
-      const lat = parseFloat(fila.LATITUD.replace(",", "."));
-      const lon = parseFloat(fila.LONGITUD.replace(",", "."));
+      data.forEach(fila => {
+        const provincia = fila.PROVINCIA?.toUpperCase();
+        const marca = fila.MARCA;
+        const stock = fila.STOCK;
+        const logo = fila.LOGO;
+        const lat = parseFloat(fila.LATITUD.replace(",", "."));
+        const lon = parseFloat(fila.LONGITUD.replace(",", "."));
 
-      let bgClass = 'bg-default';
-      if (provincia === 'BARCELONA') bgClass = 'bg-barcelona';
-      else if (provincia === 'VALENCIA') bgClass = 'bg-valencia';
-      else if (provincia === 'MADRID') bgClass = 'bg-madrid';
-      else if (provincia === 'VIGO') bgClass = 'bg-vigo';
+        let bgClass = 'bg-default';
+        if (provincia === 'BARCELONA') bgClass = 'bg-barcelona';
+        else if (provincia === 'VALENCIA') bgClass = 'bg-valencia';
+        else if (provincia === 'MADRID') bgClass = 'bg-madrid';
+        else if (provincia === 'VIGO') bgClass = 'bg-vigo';
+        else if (provincia === 'MADRID/1') bgClass = 'bg-madrid-1';
 
-      if (!isNaN(lat) && !isNaN(lon)) {
-        const html = `
-          <div class='popup-content ${bgClass}'>
-            <div class='marca-logo'>
-              <div class="info-marca">
-                <img src="${logo}" alt="logo">
-                <strong>${marca}</strong>
+        if (!isNaN(lat) && !isNaN(lon)) {
+          const html = `
+            <div class='popup-content ${bgClass}'>
+              <div class='marca-logo'>
+                <div class="info-marca">
+                  <img src="${logo}" alt="logo">
+                  <strong>${marca}</strong>
+                </div>
+                <div class="stock">${stock}</div>
               </div>
-              <div class="stock">${stock}</div>
-            </div>
-          </div>`;
+            </div>`;
 
-        L.tooltip({
-          permanent: true,
-          direction: "top",
-          className: "",
-          offset: [0, -10],
-          opacity: 1
-        })
-        .setLatLng([lat, lon])
-        .setContent(html)
-        .addTo(mapa);
-      }
+          L.tooltip({
+            permanent: true,
+            direction: "top",
+            className: "",
+            offset: [0, -10],
+            opacity: 1
+          })
+          .setLatLng([lat, lon])
+          .setContent(html)
+          .addTo(mapa);
+        }
+      });
     });
-  });
 
-// === CAMIONES ===
-const CAMIONES_CSV = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRo1GdeHBhvINfcrAmPKvUmgU2jAIThFYNSg_TjOd3w-MyKe3gmzxEft6wz6-CN3WSsTpEgq1TabODC/pub?gid=614991280&single=true&output=csv';
+  const CAMIONES_CSV = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRo1GdeHBhvINfcrAmPKvUmgU2jAIThFYNSg_TjOd3w-MyKe3gmzxEft6wz6-CN3WSsTpEgq1TabODC/pub?gid=614991280&single=true&output=csv';
 
-fetch(CAMIONES_CSV)
-  .then(resp => resp.text())
-  .then(text => {
-    const lines = text.trim().split('\n').map(l => l.split(','));
-    const headers = lines.shift().map(h => h.trim());
-    const camiones = lines.map(row => Object.fromEntries(headers.map((h, i) => [h, row[i]?.trim() || ""])));
+  fetch(CAMIONES_CSV)
+    .then(resp => resp.text())
+    .then(text => {
+      const lines = text.trim().split('\n').map(l => l.split(','));
+      const headers = lines.shift().map(h => h.trim());
+      const camiones = lines.map(row => Object.fromEntries(headers.map((h, i) => [h, row[i]?.trim() || ""])));
 
-    const legend = document.getElementById("camion-legend");
-    camiones.forEach(camion => {
-      const li = document.createElement("li");
-      li.innerHTML = `<span class="provincia">${camion.PROVINCIA}</span>: ${camion['Nº CAMIONES']}`;
-      legend.appendChild(li);
+      const contenedor = document.getElementById("camion-container");
+      camiones.forEach(camion => {
+        const provinciaOriginal = camion.PROVINCIA;
+        let nombreArchivo = provinciaOriginal.toLowerCase();
+        if (nombreArchivo.includes('vall')) {
+          nombreArchivo = 'val-pal';
+        } else {
+          nombreArchivo = nombreArchivo.replace(/[\s./]+/g, "-");
+        }
+
+        const icono = `assets/camion-${nombreArchivo}.png`;
+        const numCamiones = camion['Nº CAMIONES'];
+
+        const div = document.createElement("div");
+        div.className = "camion-card";
+        div.innerHTML = `
+          <img class="camion-icon" src="${icono}" alt="Camion ${provinciaOriginal}">
+          <span class="provincia">${provinciaOriginal}</span>
+          <span class="cantidad">: ${numCamiones}</span>
+        `;
+        contenedor.appendChild(div);
+      });
     });
-  });
+
+  setTimeout(() => location.reload(), 300000);
 </script>
 </body>
 </html>
