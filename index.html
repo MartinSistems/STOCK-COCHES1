@@ -64,25 +64,22 @@
     /* Leyenda camiones */
     #camion-legend {
       position: absolute;
-      bottom: 14px;
-      left: 14px;
+      bottom: 10px;
+      left: 10px;
       z-index: 1000;
-      background: rgba(255, 255, 255, 0.95);
-      padding: 16px 20px;
+      background: white;
+      padding: 16px 18px;
       border-radius: 12px;
-      font-size: 14px;
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
-      color: #333;
-      max-width: 280px;
-      line-height: 1.5;
+      font-size: 15px;
+      font-family: Arial, sans-serif;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+      max-width: 260px;
     }
 
     #camion-legend strong {
+      font-size: 16px;
       display: block;
-      font-size: 15px;
-      margin-bottom: 8px;
-      color: #222;
+      margin-bottom: 10px;
     }
 
     #camion-legend ul {
@@ -92,17 +89,22 @@
     }
 
     #camion-legend li {
-      margin-bottom: 6px;
-      font-size: 14px;
+      margin-bottom: 8px;
       display: flex;
       align-items: center;
-      gap: 6px;
+      gap: 8px;
+      font-size: 15px;
     }
 
     #camion-legend li::before {
       content: "🚛";
       display: inline-block;
-      font-size: 16px;
+      font-size: 18px;
+    }
+
+    /* Negrita en los nombres de provincia */
+    #camion-legend li span.provincia {
+      font-weight: bold;
     }
 
     <script>
@@ -204,7 +206,7 @@ fetch(CAMIONES_CSV)
     camiones.forEach(camion => {
       const li = document.createElement("li");
       const tipo = camion.TIPO ? ` (${camion.TIPO})` : '';
-      li.textContent = `${camion.PROVINCIA}: ${camion['Nº CAMIONES']}${tipo}`;
+      li.innerHTML = `<span class="provincia">${camion.PROVINCIA}</span>: ${camion['Nº CAMIONES']}`;
 
       ul.appendChild(li);
     });
