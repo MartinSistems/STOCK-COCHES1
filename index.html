@@ -158,3 +158,41 @@ fetch(CSV_URL)
                 <strong>${marca}</strong>
               </div>
               <div class="stock">${stock}</div>
+            </div>
+          </div>`;
+
+        L.tooltip({
+          permanent: true,
+          direction: "top",
+          className: "",
+          offset: [0, -10],
+          opacity: 1
+        })
+        .setLatLng([lat, lon])
+        .setContent(html)
+        .addTo(mapa);
+      }
+    });
+  });
+
+// === CAMIONES ===
+const CAMIONES_CSV = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRo1GdeHBhvINfcrAmPKvUmgU2jAIThFYNSg_TjOd3w-MyKe3gmzxEft6wz6-CN3WSsTpEgq1TabODC/pub?gid=614991280&single=true&output=csv';
+
+fetch(CAMIONES_CSV)
+  .then(resp => resp.text())
+  .then(text => {
+    const lines = text.trim().split('\n').map(l => l.split(','));
+    const headers = lines.shift().map(h => h.trim());
+    const camiones = lines.map(row => Object.fromEntries(headers.map((h, i) => [h, row[i]?.trim() || ""])));
+
+    const legend = document.getElementById("camion-legend");
+    camiones.forEach(camion => {
+      const li = document.createElement("li");
+      li.innerHTML = `<span class="provincia">${camion.PROVINCIA}</span>: ${camion['Nº CAMIONES']}`;
+      legend.appendChild(li);
+    });
+  });
+</script>
+</body>
+</html>
+
