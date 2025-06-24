@@ -93,15 +93,23 @@
 
     #camion-legend li {
       margin-bottom: 6px;
-      padding-left: 18px;
-      position: relative;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
     }
 
     #camion-legend li::before {
-      content: "🚚  |";
-      position: absolute;
-      left: 0;
+      content: "🚛";
+      display: inline-block;
+      font-size: 16px;
     }
+
+    <script>
+      setTimeout(() => {
+        location.reload();
+      }, 300000); // 300.000 ms = 5 minutos
+    </script>
 
   </style>
 </head>
