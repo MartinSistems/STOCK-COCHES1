@@ -98,7 +98,7 @@
     }
 
     #camion-legend li::before {
-      content: "🚚  ";
+      content: "🚚  |";
       position: absolute;
       left: 0;
     }
@@ -123,8 +123,8 @@ const mapa = L.map('map', {
 });
 
 const bounds = L.latLngBounds(
-  [27.5, -12.5],  // Suroeste: más allá de Canarias y Marruecos
-  [50.5, 20.0]    // Noreste: incluye norte de Francia, Suiza, Italia
+  [35.5, -10],  // Suroeste: más allá de Canarias y Marruecos
+  [49.5, 10]    // Noreste: incluye norte de Francia, Suiza, Italia
 );
 
 mapa.fitBounds(bounds);
